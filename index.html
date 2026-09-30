@@ -1342,8 +1342,8 @@ function compresserImage(src, callback, forPdf) {
   img.onload = function() {
     // Pour le PDF : images plus petites (600px max, qualité 0.4)
     // Pour l'affichage : taille normale (800px max, qualité 0.6)
-    var maxW = forPdf ? 600 : 800, maxH = forPdf ? 600 : 800;
-    var q = forPdf ? 0.4 : 0.6;
+    var maxW = forPdf ? 800 : 800, maxH = forPdf ? 800 : 800;
+    var q = forPdf ? 0.35 : 0.6;
     var w = img.width, h = img.height;
     if (w > maxW) { h = h*maxW/w; w = maxW; }
     if (h > maxH) { w = w*maxH/h; h = maxH; }
@@ -1784,7 +1784,7 @@ function genPDF() {
     function renderPiece(pid, lbl, isCustom) {
       var m = (d.maint||{})[pid]||{}; if (!m.stat || m.stat==="na") return "";
       var phs = (d.photos||{})["pz-"+pid]||[];
-      var phMini = phs.length ? "<div style='display:flex;gap:2px;flex-wrap:wrap'>" + phs.slice(0,3).map(function(ph){ return "<img src='"+(ph.url||ph.src)+"' style='width:40px;height:30px;object-fit:cover;border-radius:2px;border:0.5px solid #ccc'>"; }).join("") + (phs.length>3?"<span style='font-size:7pt;color:#888;align-self:center'> +"+( phs.length-3)+"</span>":"") + "</div>" : "";
+      var phMini = phs.length ? "<div style='display:flex;gap:2px;flex-wrap:wrap'>" + phs.map(function(ph){ return "<img src='"+(ph.url||ph.src)+"' style='width:48px;height:36px;object-fit:cover;border-radius:2px;border:0.5px solid #ccc'>"; }).join("") + "</div>" : "";
       sc = true;
       return "<tr><td style='font-size:8pt;padding:4px 7px;border:1px solid #ddd;width:18%'>" + lbl + "</td>" +
         "<td style='padding:4px 7px;border:1px solid #ddd;width:12%;white-space:nowrap'>" + bdg(m.stat) + "</td>" +
@@ -1872,7 +1872,7 @@ function genPDF() {
       g.photos.forEach(function(ph, i) {
         // Utiliser une version compressée pour le PDF
         var imgSrc = ph.url || ph.src || "";
-        h += "<div style='break-inside:avoid'><img src='" + imgSrc + "' style='width:100%;max-height:180px;object-fit:contain;display:block;border-radius:4px;border:0.5px solid #ddd'>";
+        h += "<div style='break-inside:avoid'><img src='" + imgSrc + "' style='width:100%;max-height:220px;object-fit:contain;display:block;border-radius:4px;border:0.5px solid #ddd'>";
         if (ph.lat && ph.lng) {
           var mu = "https://staticmap.openstreetmap.de/staticmap.php?center="+ph.lat+","+ph.lng+"&zoom=17&size=300x180&markers="+ph.lat+","+ph.lng+",red-pushpin";
           h += "<img src='"+mu+"' style='width:100%;height:auto;display:block;border-radius:3px;border:1px solid #2980b9;margin-top:4px' onerror='this.style.display=\"none\"'>";
