@@ -1337,15 +1337,19 @@ function addF(id, files) {
     reader.readAsDataURL(f);
   });
 }
-function compresserImage(src, callback) {
+function compresserImage(src, callback, forPdf) {
   var img = new Image();
   img.onload = function() {
-    var maxW = 1200, maxH = 1200, w = img.width, h = img.height;
+    // Pour le PDF : images plus petites (600px max, qualité 0.4)
+    // Pour l'affichage : taille normale (800px max, qualité 0.6)
+    var maxW = forPdf ? 600 : 800, maxH = forPdf ? 600 : 800;
+    var q = forPdf ? 0.4 : 0.6;
+    var w = img.width, h = img.height;
     if (w > maxW) { h = h*maxW/w; w = maxW; }
     if (h > maxH) { w = w*maxH/h; h = maxH; }
     var canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
     canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-    callback(canvas.toDataURL("image/jpeg", 0.7));
+    callback(canvas.toDataURL("image/jpeg", q));
   };
   img.src = src;
 }
@@ -1684,6 +1688,27 @@ async function exporterJSON() {
   setTimeout(function() { notif("JSON exporté — " + nbPh + " photo(s) incluse(s) !"); }, 500);
 }
 
+function compresserPhotosPDF(photos, callback) {
+  // Compresse toutes les photos pour le PDF (plus légères)
+  var keys = Object.keys(photos);
+  var result = {};
+  var total = 0, done = 0;
+  keys.forEach(function(k) { total += (photos[k]||[]).length; });
+  if (total === 0) { callback(result); return; }
+  keys.forEach(function(k) {
+    result[k] = [];
+    (photos[k]||[]).forEach(function(ph, i) {
+      var src = ph.url || ph.src || "";
+      if (!src) { result[k].push(ph); done++; if(done===total) callback(result); return; }
+      compresserImage(src, function(compressed) {
+        result[k].push(Object.assign({}, ph, {src: compressed, url: compressed}));
+        done++;
+        if (done === total) callback(result);
+      }, true); // true = mode PDF
+    });
+  });
+}
+
 function genPDF() {
   doSave();
   var d = collectForm();
@@ -1759,7 +1784,7 @@ function genPDF() {
     function renderPiece(pid, lbl, isCustom) {
       var m = (d.maint||{})[pid]||{}; if (!m.stat || m.stat==="na") return "";
       var phs = (d.photos||{})["pz-"+pid]||[];
-      var phMini = phs.length ? "<div style='display:flex;gap:2px;flex-wrap:wrap'>" + phs.map(function(ph){ return "<img src='"+(ph.url||ph.src)+"' style='width:48px;height:36px;object-fit:cover;border-radius:2px;border:0.5px solid #ccc'>"; }).join("") + "</div>" : "";
+      var phMini = phs.length ? "<div style='display:flex;gap:2px;flex-wrap:wrap'>" + phs.slice(0,3).map(function(ph){ return "<img src='"+(ph.url||ph.src)+"' style='width:40px;height:30px;object-fit:cover;border-radius:2px;border:0.5px solid #ccc'>"; }).join("") + (phs.length>3?"<span style='font-size:7pt;color:#888;align-self:center'> +"+( phs.length-3)+"</span>":"") + "</div>" : "";
       sc = true;
       return "<tr><td style='font-size:8pt;padding:4px 7px;border:1px solid #ddd;width:18%'>" + lbl + "</td>" +
         "<td style='padding:4px 7px;border:1px solid #ddd;width:12%;white-space:nowrap'>" + bdg(m.stat) + "</td>" +
@@ -1845,7 +1870,9 @@ function genPDF() {
       if (g.obs) h += "<div style='font-size:9pt;color:#555;font-style:italic;margin-bottom:8px;padding:5px 8px;background:#f8f8f8;border-radius:4px;border-left:3px solid #C0392B'>" + g.obs + "</div>";
       h += "<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px'>";
       g.photos.forEach(function(ph, i) {
-        h += "<div style='break-inside:avoid'><img src='" + (ph.url||ph.src) + "' style='width:100%;max-height:220px;object-fit:contain;display:block;border-radius:4px;border:0.5px solid #ddd'>";
+        // Utiliser une version compressée pour le PDF
+        var imgSrc = ph.url || ph.src || "";
+        h += "<div style='break-inside:avoid'><img src='" + imgSrc + "' style='width:100%;max-height:180px;object-fit:contain;display:block;border-radius:4px;border:0.5px solid #ddd'>";
         if (ph.lat && ph.lng) {
           var mu = "https://staticmap.openstreetmap.de/staticmap.php?center="+ph.lat+","+ph.lng+"&zoom=17&size=300x180&markers="+ph.lat+","+ph.lng+",red-pushpin";
           h += "<img src='"+mu+"' style='width:100%;height:auto;display:block;border-radius:3px;border:1px solid #2980b9;margin-top:4px' onerror='this.style.display=\"none\"'>";
