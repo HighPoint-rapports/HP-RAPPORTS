@@ -546,14 +546,13 @@ textarea{resize:vertical}
 <input type="file" id="fi-gal" accept="image/*" multiple style="display:none">
 <input type="file" id="fi-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="fi-xlsx" accept=".xlsx,.xls" style="display:none">
-<input type="file" id="fiImportPlan" accept="image/*" style="display:none">
+<input type="file" id="fiImportPlan" accept="image/*" multiple style="display:none">
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-<script>
 // ── DICTÉE VOCALE ────────────────────────────────────────────────────────
 var micActive = null, recognition = null;
 
@@ -2015,20 +2014,24 @@ var planTexts = {};
 
 
 function ajouterPlan() {
-  var fi = document.createElement("input");
-  fi.type = "file"; fi.accept = "image/*";
+  var fi = document.getElementById("fiImportPlan");
+  fi.value = "";
   fi.onchange = function(e) {
-    var file = e.target.files[0]; if(!file) return;
-    var r = new FileReader();
-    r.onload = function(ev) {
-      var id = "plan_" + Date.now();
-      plansData.push({id:id, title:"Plan "+(plansData.length+1), imgSrc:ev.target.result, annotatedSrc:null, _history:[]});
-      planTexts[id] = [];
-      renderPlans();
-      as();
-      setTimeout(function(){ initCanvas(id); }, 150);
-    };
-    r.readAsDataURL(file);
+    var files = Array.from(e.target.files);
+    if (!files.length) return;
+    files.forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var id = "plan_" + Date.now() + "_" + Math.random().toString(36).slice(2,6);
+        plansData.push({id:id, title:"Plan "+(plansData.length+1), imgSrc:ev.target.result, annotatedSrc:null, _history:[]});
+        planTexts[id] = [];
+        renderPlans();
+        as();
+        setTimeout(function(){ initCanvas(id); }, 150);
+      };
+      reader.readAsDataURL(file);
+    });
+    fi.value = "";
   };
   fi.click();
 }
@@ -2519,6 +2522,10 @@ function genResumeInterne() {
   w.document.close();
   w.onload = function() { setTimeout(function() { w.print(); }, 500); };
   notif("Resume interne genere !");
+}
+
+
+!");
 }
 
 
