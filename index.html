@@ -707,14 +707,27 @@ function ecouterRapports() {
       var list = [];
       snap.forEach(function(doc) { list.push(doc.data()); });
       saveRapports(list);
+      // Rafraîchir la liste seulement si on est sur l'accueil
       var home = document.getElementById("scrHome");
       if (home && home.classList.contains("on")) renderRapportList(list);
+      // Si un rapport est ouvert, synchroniser les photos des autres techniciens
+      // SANS écraser les modifications en cours (si < 3s = c'est nous)
+      if (curId) {
+        var rapMAJ = list.find(function(r) { return r.id === curId; });
+        if (rapMAJ && rapMAJ.photos && Date.now() - (rapMAJ.upd||0) > 3000) {
+          Object.keys(rapMAJ.photos).forEach(function(zone) {
+            var phFS = (rapMAJ.photos[zone]||[]).filter(function(p) { return p.url||p.src; });
+            if (phFS.length > (PH[zone]||[]).length) {
+              PH[zone] = phFS;
+              renderPZ(zone);
+            }
+          });
+        }
+      }
       var badge = document.getElementById("syncBadge");
-      if (badge) { badge.textContent = "✓ Sync"; }
+      if (badge) badge.textContent = "✓ Sync";
     }, function(err) { console.log("Snapshot err:", err); });
 }
-
-// ══ CLOUDINARY ══════════════════════════════════════════════════════════
 function uploadPhotoCloudinary(rapportId, zone, idx, base64src, callback) {
   var fd = new FormData();
   fd.append("file", base64src);
